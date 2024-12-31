@@ -20,6 +20,23 @@ class Logic
     }
 
     
+    vector<move_pos> find_best_turns(const bool color)
+    {
+        next_best_state.clear(); // Очищаем массив значений лучших ходов
+        next_move.clear(); // Очищаем массив значений следующий ход
+
+        find_first_best_turn(board->get_board(), color, -1, -1, 0); 
+
+        int state = 0; // текущее состояние
+        vector<move_pos> result; // итоговый массив
+        do // выполнить хотя бы 1 раз (точно) 
+        {
+            result.push_back(next_move[state]); // добавляем следующее состояние в конец
+            state = next_best_state[state]; // присваиваем текущему состоянию следующее
+        } while (state != -1 && next_move[state].x != -1);
+        return result;
+    }
+
 
 private:
     vector<vector<POS_T>> make_turn(vector<vector<POS_T>> mtx, move_pos turn) const // выполнение хода: массив  ходов, ход игрока
@@ -69,9 +86,100 @@ private:
         return (b + bq * q_coef) / (w + wq * q_coef);
     }
 
-    
+    double find_first_best_turn(vector<vector<POS_T>> mtx, const bool color, const POS_T x, const POS_T y, size_t state,
+        double alpha = -1) // поиск первого лучшего хода
+    {
+        next_best_state.push_back(-1); // добавляем в конец массив значение -1
+        next_move.emplace_back(-1, -1, -1, -1); 
+        double best_score = -1;
+        if (state != 0) // если текущая позиция не равно 0, то вызываем функцию поиска хода
+            find_turns(x, y, mtx);
+        // иначе 
+        auto turns_now = turns;
+        bool have_beats_now = have_beats;
+
+        if (!have_beats_now && state != 0) // Если отсутствует лучший ход и текущее состояние не равно 0, то вызываем функцию поиска хода
+        {
+            return find_best_turns_rec(mtx, 1 - color, 0, alpha);
+        }
+
+        vector<move_pos> best_moves;
+        vector<int> best_states;
+
+        for (auto turn : turns_now) // цикл ходов по всем возможным ходам
+        {
+            size_t next_state = next_move.size();
+            double score;
+            if (have_beats_now) // имеется ли сейчас возможность бить шашку противника
+            {
+                score = find_first_best_turn(make_turn(mtx, turn), color, turn.x2, turn.y2, next_state, best_score);
+            }
+            else // перемещаем шашку  
+            {
+                score = find_best_turns_rec(make_turn(mtx, turn), 1 - color, 0, best_score);
+            }
+            if (score > best_score)
+            {
+                best_score = score;
+                next_best_state[state] = (have_beats_now ? int(next_state) : -1);
+                next_move[state] = turn;
+            }
+        }
+        return best_score;
+    }
+
 
     
+    double find_best_turns_rec(vector<vector<POS_T>> mtx, const bool color, const size_t depth, double alpha = -1,
+        double beta = INF + 1, const POS_T x = -1, const POS_T y = -1)
+    {
+        if (depth == Max_depth) // если глубина биты равна максимальной бите
+        {
+            return calc_score(mtx, (depth % 2 == color));
+        }
+        if (x != -1) // ищем хода для шашки
+        {
+            find_turns(x, y, mtx);
+        }
+        else
+            find_turns(color, mtx);
+        auto turns_now = turns; // текущий ход
+        bool have_beats_now = have_beats; // имеется ли сейчас возможность биты шашки
+
+        if (!have_beats_now && x != -1) 
+        {
+            return find_best_turns_rec(mtx, 1 - color, depth + 1, alpha, beta);
+        }
+
+        if (turns.empty()) // если список ходов пустой
+            return (depth % 2 ? 0 : INF);
+
+        double min_score = INF + 1;
+        double max_score = -1;
+        for (auto turn : turns_now)
+        {
+            double score = 0.0;
+            if (!have_beats_now && x == -1)
+            {
+                score = find_best_turns_rec(make_turn(mtx, turn), 1 - color, depth + 1, alpha, beta);
+            }
+            else
+            {
+                score = find_best_turns_rec(make_turn(mtx, turn), color, depth, alpha, beta, turn.x2, turn.y2);
+            }
+            min_score = min(min_score, score);
+            max_score = max(max_score, score);
+            // alpha-beta pruning
+            if (depth % 2)
+                alpha = max(alpha, max_score);
+            else
+                beta = min(beta, min_score);
+            if (optimization != "O0" && alpha >= beta)
+                return (depth % 2 ? max_score + 1 : min_score - 1);
+        }
+        return (depth % 2 ? max_score : min_score);
+    }
+
 
 public:
     void find_turns(const bool color)
