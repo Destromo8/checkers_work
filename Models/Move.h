@@ -1,31 +1,33 @@
 #pragma once
 #include <stdlib.h>
+#include <stdint.h>
 
 typedef int8_t POS_T;
 
-// структура движения шашки
+// РЎС‚СЂСѓРєС‚СѓСЂР°, РѕРїРёСЃС‹РІР°СЋС‰Р°СЏ С…РѕРґ С€Р°С€РєРё
 struct move_pos
 {
-    POS_T x, y;             // откуда
-    POS_T x2, y2;           // куда
-    POS_T xb = -1, yb = -1; // если бита шашка
+    POS_T x, y;             // РЅР°С‡Р°Р»СЊРЅР°СЏ РїРѕР·РёС†РёСЏ (РѕС‚РєСѓРґР°)
+    POS_T x2, y2;           // РєРѕРЅРµС‡РЅР°СЏ РїРѕР·РёС†РёСЏ (РєСѓРґР°)
+    POS_T xb = -1, yb = -1; // РїРѕР·РёС†РёСЏ Р±РёС‚РѕР№ С€Р°С€РєРё (РµСЃР»Рё РµСЃС‚СЊ)
 
-    // движение шашки без биты
-    move_pos(const POS_T x, const POS_T y, const POS_T x2, const POS_T y2) : x(x), y(y), x2(x2), y2(y2)
-    {
-    }
-    // движение шашки с битой шашки противника
+    // РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ С…РѕРґР° Р±РµР· РІР·СЏС‚РёСЏ
+    move_pos(const POS_T x, const POS_T y, const POS_T x2, const POS_T y2)
+        : x(x), y(y), x2(x2), y2(y2) {}
+
+    // РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ С…РѕРґР° СЃРѕ РІР·СЏС‚РёРµРј С€Р°С€РєРё СЃРѕРїРµСЂРЅРёРєР°
     move_pos(const POS_T x, const POS_T y, const POS_T x2, const POS_T y2, const POS_T xb, const POS_T yb)
-        : x(x), y(y), x2(x2), y2(y2), xb(xb), yb(yb)
+        : x(x), y(y), x2(x2), y2(y2), xb(xb), yb(yb) {}
+
+    // РџРµСЂРµРѕРїСЂРµРґРµР»РµРЅРёРµ РѕРїРµСЂР°С‚РѕСЂР° == (СЃСЂР°РІРЅРµРЅРёРµ С…РѕРґРѕРІ)
+    bool operator==(const move_pos &other) const
     {
+        return (x == other.x && y == other.y && x2 == other.x2 && y2 == other.y2);
     }
 
-    bool operator==(const move_pos &other) const // переопределение оператора == (присваивания)
+    // РџРµСЂРµРѕРїСЂРµРґРµР»РµРЅРёРµ РѕРїРµСЂР°С‚РѕСЂР° != (РѕР±СЂР°С‚РЅРѕРµ СЃСЂР°РІРЅРµРЅРёРµ)
+    bool operator!=(const move_pos &other) const
     {
-        return (x == other.x && y == other.y && x2 == other.x2 && y2 == other.y2); // меняем значения шашки при движении
-    }
-    bool operator!=(const move_pos &other) const // переопределение оператора != (не равно)
-    {
-        return !(*this == other); // не двигаем шашку на новую позицию
+        return !(*this == other);
     }
 };
